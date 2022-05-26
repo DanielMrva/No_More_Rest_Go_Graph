@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Jumbotron, Container, CardColumns, Card, Button } from 'react-bootstrap';
-
-import { getMe, deleteBook } from '../utils/API';
+import { useMutation, useQuery } from '@apollo/client';
+import { GET_ME } from '../utils/queries';
+import { REMOVE_BOOK } from '../utils/mutations';
+// import { getMe, deleteBook } from '../utils/API';
 import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
 
@@ -13,24 +15,24 @@ const SavedBooks = () => {
 
   const getUserData = async () => {
         
-      const token = Auth.loggedIn() ? Auth.getToken() : null;
+      const token = Auth.loggedIn() ? Auth.get() : null;
 
       if (!token) {
         return false;
       }
 
-      const { loading, error, data } = useQuery(GET_ME, { variables: { _id: token.data._id }})
+      const { loading, error, data } = await useQuery(GET_ME, { variables: { _id: token.data._id }})
 
-      if(!data) {
-        throw new Error(`Error: ${error}`)
+      if(error) {
+        throw new Error(`Error: ${error.message}`)
       }
 
-      setUserData(data);
+      setUserData(data)
   };
 
   if(!userDataLength) {
-    getUserData();
-  };
+    getUserData()
+  }
 
 
   // create function that accepts the book's mongo _id value as param and deletes the book from the database
@@ -40,22 +42,18 @@ const SavedBooks = () => {
     if (!token) {
       return false;
     }
+    const [removeBook, { data, loading, error }] = useMutation(REMOVE_BOOK);
 
-    try {
-      const response = await deleteBook(bookId, token);
-
-      if (!response.ok) {
-        throw new Error('something went wrong!');
-      }
-
-      const updatedUser = await response.json();
-      setUserData(updatedUser);
-      // upon success, remove book's id from localStorage
-      removeBookId(bookId);
-    } catch (err) {
-      console.error(err);
+    if(error) {
+      throw new Error(`Error: ${error}`);
     }
-  };
+
+    removeBook({variables: {_id: token.data._id, bookId: bookId}})
+
+    removeBookId(bookId);
+
+    }
+  
 
   // if data isn't here yet, say so
   if (!userDataLength) {

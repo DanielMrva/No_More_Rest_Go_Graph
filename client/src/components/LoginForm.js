@@ -1,8 +1,8 @@
 // see SignupForm.js for comments
 import React, { useState } from 'react';
 import { Form, Button, Alert } from 'react-bootstrap';
-
-import { loginUser } from '../utils/API';
+import { LOGIN_USER } from '../utils/mutations';
+// import { loginUser } from '../utils/API';
 import Auth from '../utils/auth';
 
 const LoginForm = () => {
@@ -25,20 +25,18 @@ const LoginForm = () => {
       event.stopPropagation();
     }
 
-    try {
-      const response = await loginUser(userFormData);
+    const [loginUser, { data, loading, error}] = useMutation(LOGIN_USER);
 
-      if (!response.ok) {
-        throw new Error('something went wrong!');
-      }
+    const {token, user} = await loginUser({variables: {variables: {userFormData}}})
 
-      const { token, user } = await response.json();
+    if(error) {
+      throw new Error(`Error: ${error.message}`)
+    }
+
+
       console.log(user);
       Auth.login(token);
-    } catch (err) {
-      console.error(err);
-      setShowAlert(true);
-    }
+
 
     setUserFormData({
       username: '',
